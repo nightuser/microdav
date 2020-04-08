@@ -1,4 +1,4 @@
-module https://github.com/nightuser/microdav
+module github.com/nightuser/microdav
 
 go 1.14
 

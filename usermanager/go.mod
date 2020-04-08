@@ -1,4 +1,4 @@
-module https://github.com/nightuser/microdav/usermanager
+module github.com/nightuser/microdav/usermanager
 
 go 1.14
 
