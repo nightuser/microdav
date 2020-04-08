@@ -132,12 +132,8 @@ func TestGetUsers(t *testing.T) {
 }
 
 func testUsers() {
-	if err := deleteUser("testuser"); err != nil {
-		errorLogger.Fatal(err)
-	}
-	if err := createUser("testuser", "foo"); err != nil {
-		errorLogger.Fatal(err)
-	}
+	checkError(deleteUser("testuser"))
+	checkError(createUser("testuser", "foo"))
 	if err := createUser("testuser", "bar"); err != nil {
 		logger.Println("Adding user the second time failed; expected")
 	}
