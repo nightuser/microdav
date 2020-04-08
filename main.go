@@ -74,7 +74,9 @@ func startServer(shutdownCompleted *sync.WaitGroup) *http.Server {
 }
 
 func main() {
-	userManager = usermanager.New("test.db")
+	var err error
+	userManager, err = usermanager.New("test.db")
+	checkError(err)
 	defer userManager.Close()
 
 	shutdownCompleted := &sync.WaitGroup{}

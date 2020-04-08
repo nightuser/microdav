@@ -51,24 +51,33 @@ type UserManager struct {
 // New creates a UserManager
 //
 // Also see NewWithSeed
-func New(dbName string) *UserManager {
+func New(dbName string) (*UserManager, error) {
 	return NewWithSeed(dbName, time.Now().UnixNano())
 }
 
 // NewWithSeed behaves like New, but with the provided seed for the salt
 // generator
-func NewWithSeed(dbName string, seed int64) (manager *UserManager) {
+func NewWithSeed(dbName string, seed int64) (manager *UserManager, err error) {
 	saltSource := rand.NewSource(seed)
+	var db *sql.DB
+	db, err = sql.Open("sqlite3", dbName)
+	if err != nil {
+		manager = nil
+		return
+	}
 	manager = &UserManager{
 		saltRand: rand.New(saltSource),
+		db:       db,
 	}
 	return
 }
 
 // Close closes database connection
 func (manager *UserManager) Close() error {
-	if err := manager.db.Close(); err != nil {
-		return err
+	if manager.db != nil {
+		if err := manager.db.Close(); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -107,7 +116,8 @@ func (manager *UserManager) CheckPassword(username, password string) error {
 	return nil
 }
 
-func (manager *UserManager) createUser(username string, password string) error {
+// CreateUser creates user in the DB
+func (manager *UserManager) CreateUser(username, password string) error {
 	salt := manager.generateSalt(saltLength)
 	saltedPassword := saltPassword(password, salt)
 	hashedPassword, err := bcrypt.GenerateFromPassword(
@@ -126,7 +136,8 @@ func (manager *UserManager) createUser(username string, password string) error {
 	return err
 }
 
-func (manager *UserManager) deleteUser(username string) error {
+// DeleteUser deletes user from the DB
+func (manager *UserManager) DeleteUser(username string) error {
 	result, err := manager.db.Exec(
 		`delete from users `+
 			`where "username" = $1`,
