@@ -1,4 +1,4 @@
-package main
+package usermanager
 
 import (
 	"database/sql"
@@ -115,7 +115,7 @@ func TestGetUsers(t *testing.T) {
 		t.Error(err)
 	}
 
-	var user user
+	var user User
 	rows, err := db.Query("select * from users")
 	if err != nil {
 		t.Error(err)

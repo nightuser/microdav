@@ -1,9 +1,8 @@
 package main
 
 import (
-	"database/sql"
+	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/nightuser/dav-server/usermanager"
 	"golang.org/x/net/context"
 	"golang.org/x/net/webdav"
 )
@@ -21,14 +21,11 @@ var (
 	errorLogger = log.New(os.Stdout, "Error: ", log.LstdFlags)
 )
 
-var db *sql.DB
+var userManager *usermanager.UserManager
 
 func showIndex(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Hey!"))
-}
-
-func showFoo(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("FooBar!"))
+	username, password, _ := r.BasicAuth()
+	w.Write([]byte(fmt.Sprintf("Hey %s : %s!", username, password)))
 }
 
 func startServer(shutdownCompleted *sync.WaitGroup) *http.Server {
@@ -47,10 +44,12 @@ func startServer(shutdownCompleted *sync.WaitGroup) *http.Server {
 		},
 	}
 
+	realm := "Protected"
+	davHandler := accessHandler(webdavHandler.ServeHTTP, realm)
+
 	r := mux.NewRouter()
-	r.HandleFunc("/", basicAuth(showIndex, "Protected"))
-	r.PathPrefix("/dav/").HandlerFunc(webdavHandler.ServeHTTP)
-	r.PathPrefix("/foo/").HandlerFunc(showFoo)
+	r.HandleFunc("/", showIndex)
+	r.PathPrefix("/dav/{username}/").HandlerFunc(davHandler)
 	loggedRouter := handlers.LoggingHandler(os.Stdout, r)
 
 	srv := &http.Server{
@@ -75,12 +74,8 @@ func startServer(shutdownCompleted *sync.WaitGroup) *http.Server {
 }
 
 func main() {
-	var err error
-	db, err = sql.Open("sqlite3", "test.db")
-	checkError(err)
-	defer db.Close()
-
-	saltRand = rand.New(rand.NewSource(time.Now().UnixNano()))
+	userManager = usermanager.New("test.db")
+	defer userManager.Close()
 
 	shutdownCompleted := &sync.WaitGroup{}
 	shutdownCompleted.Add(1)

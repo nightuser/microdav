@@ -3,20 +3,35 @@ package main
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/gorilla/mux"
+	"github.com/nightuser/dav-server/usermanager"
 )
 
-func basicAuth(handler http.HandlerFunc, realm string) http.HandlerFunc {
+func accessHandler(handler http.HandlerFunc, realm string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		username, password, ok := r.BasicAuth()
+		vars := mux.Vars(r)
+		requestedUsername := vars["username"]
 
+		username, password, ok := r.BasicAuth()
 		if !ok {
 			unauthorize(w, realm)
 			return
 		}
 
-		if err := checkPassword(username, password); err != nil {
-			if err != ErrPasswordDoesNotMatch {
-				errorLogger.Print(err)
+		if username != requestedUsername {
+			errorLogger.Printf(
+				"'%s' tried to accees '%s's files",
+				username, requestedUsername)
+			unauthorize(w, realm)
+			return
+		}
+
+		if err := userManager.CheckPassword(username, password); err != nil {
+			if err != usermanager.ErrPasswordDoesNotMatch {
+				errorLogger.Printf(
+					"Wrong password for user '%s'\n",
+					username)
 			}
 			unauthorize(w, realm)
 			return
