@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/nightuser/dav-server/usermanager"
+	"github.com/nightuser/microdav/usermanager"
 )
 
 func accessHandler(handler http.HandlerFunc, realm string) http.HandlerFunc {

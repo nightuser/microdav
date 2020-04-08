@@ -11,7 +11,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/nightuser/dav-server/usermanager"
+	"github.com/nightuser/microdav/usermanager"
 	"golang.org/x/net/context"
 	"golang.org/x/net/webdav"
 )
