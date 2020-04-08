@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,6 +13,7 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/context"
+	"golang.org/x/net/webdav"
 )
 
 var (
@@ -25,9 +27,30 @@ func showIndex(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Hey!"))
 }
 
+func showFoo(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("FooBar!"))
+}
+
 func startServer(shutdownCompleted *sync.WaitGroup) *http.Server {
+	dir := "./foo"
+	webdavHandler := &webdav.Handler{
+		Prefix:     "/dav/",
+		FileSystem: webdav.Dir(dir),
+		LockSystem: webdav.NewMemLS(),
+		Logger: func(r *http.Request, err error) {
+			if err == nil {
+				logger.Printf("webdav %s\n", r.URL)
+			} else {
+				errorLogger.Printf(
+					"webdav %s %s\n", r.URL, err)
+			}
+		},
+	}
+
 	r := mux.NewRouter()
 	r.HandleFunc("/", basicAuth(showIndex, "Protected"))
+	r.PathPrefix("/dav/").HandlerFunc(webdavHandler.ServeHTTP)
+	r.PathPrefix("/foo/").HandlerFunc(showFoo)
 	loggedRouter := handlers.LoggingHandler(os.Stdout, r)
 
 	srv := &http.Server{
@@ -54,10 +77,10 @@ func startServer(shutdownCompleted *sync.WaitGroup) *http.Server {
 func main() {
 	var err error
 	db, err = sql.Open("sqlite3", "test.db")
-	if err != nil {
-		errorLogger.Fatal(err)
-	}
+	checkError(err)
 	defer db.Close()
+
+	saltRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	shutdownCompleted := &sync.WaitGroup{}
 	shutdownCompleted.Add(1)
@@ -70,8 +93,6 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
-		errorLogger.Fatal(err)
-	}
+	checkError(srv.Shutdown(ctx))
 	shutdownCompleted.Wait()
 }

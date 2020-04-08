@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"time"
 
 	"github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/bcrypt"
@@ -14,12 +13,14 @@ import (
 const saltCharset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const saltLength = 8
 
-var saltRand = rand.New(rand.NewSource(time.Now().UnixNano()))
+var saltRand *rand.Rand
 
 var (
-	// ErrUserExists is returned when user already exists during the creation
+	// ErrUserExists is returned when user already exists during the
+	// creation
 	ErrUserExists = errors.New("User already exists")
-	// ErrUserNotFound is returned when user not found in select/delete query
+	// ErrUserNotFound is returned when user not found in select/delete
+	// query
 	ErrUserNotFound = errors.New("User not found")
 	// ErrPasswordDoesNotMatch is return when the provided password is wrong
 	ErrPasswordDoesNotMatch = errors.New("Password doesn't match")
@@ -32,7 +33,10 @@ type user struct {
 }
 
 func checkPassword(username, password string) error {
-	row := db.QueryRow("select salt, password from users where username=$1", username)
+	row := db.QueryRow(
+		`select "salt", "password" from users `+
+			`where "username" = $1`,
+		username)
 	var salt string
 	var hashedPassword []byte
 	if err := row.Scan(&salt, &hashedPassword); err != nil {
@@ -43,7 +47,8 @@ func checkPassword(username, password string) error {
 	}
 
 	saltedPassword := saltPassword(password, salt)
-	if err := bcrypt.CompareHashAndPassword(hashedPassword, saltedPassword); err != nil {
+	if err := bcrypt.CompareHashAndPassword(
+		hashedPassword, saltedPassword); err != nil {
 		return ErrPasswordDoesNotMatch
 	}
 
@@ -66,12 +71,16 @@ func saltPassword(password, salt string) []byte {
 func createUser(username string, password string) error {
 	salt := generateSalt(saltLength)
 	saltedPassword := saltPassword(password, salt)
-	hashedPassword, err := bcrypt.GenerateFromPassword(saltedPassword, bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword(
+		saltedPassword, bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
 
-	_, err = db.Exec(`insert into users("username","salt","password") VALUES ($1, $2, $3)`, username, salt, hashedPassword)
+	_, err = db.Exec(
+		`insert into users("username","salt","password") `+
+			`values ($1, $2, $3)`,
+		username, salt, hashedPassword)
 	if err == sqlite3.ErrConstraintUnique {
 		return ErrUserExists
 	}
@@ -79,7 +88,10 @@ func createUser(username string, password string) error {
 }
 
 func deleteUser(username string) error {
-	result, err := db.Exec(`delete from users where "username" = $1`, username)
+	result, err := db.Exec(
+		`delete from users `+
+			`where "username" = $1`,
+		username)
 	if err != nil {
 		return err
 	}

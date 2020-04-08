@@ -27,7 +27,8 @@ func basicAuth(handler http.HandlerFunc, realm string) http.HandlerFunc {
 }
 
 func unauthorize(w http.ResponseWriter, realm string) {
-	w.Header().Set("WWW-Authenticate", fmt.Sprintf(`Basic realm="%s"`, realm))
+	w.Header().Set(
+		"WWW-Authenticate", fmt.Sprintf(`Basic realm="%s"`, realm))
 	w.WriteHeader(http.StatusUnauthorized)
 	w.Write([]byte("Unauthorized"))
 }
