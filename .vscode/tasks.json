@@ -1,0 +1,19 @@
+{
+        "version": "2.0.0",
+        "echoCommand": true,
+        "cwd": "${workspaceFolder}",
+        "tasks": [
+                {
+                        "label": "rungo",
+                        "type": "shell",
+                        "command": "go run .",
+                        "group": {
+                                "kind": "build",
+                                "isDefault": true
+                        },
+                        "presentation": {
+                                "clear": true
+                        }
+                }
+        ]
+}
